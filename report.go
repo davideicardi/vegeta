@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	vegeta "github.com/tsenart/vegeta/lib"
+	vegeta "github.com/davideicardi/vegeta/lib"
 )
 
 func reportCmd() command {
@@ -36,7 +36,7 @@ func report(reporter, inputs, output string) error {
 	case "json":
 		rep = vegeta.ReportJSON
 	case "plot":
-		rep = vegeta.ReportPlot
+		rep = vegeta.ReportChart
 	case "hist":
 		if len(reporter) < 6 {
 			return fmt.Errorf("bad buckets: '%s'", reporter[4:])

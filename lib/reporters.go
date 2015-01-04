@@ -165,3 +165,91 @@ const plotsTemplate = `<!doctype>
   </script>
 </body>
 </html>`
+
+
+// ReportChart builds up an HTML page with an interactive plot
+// of the latencies of the requests. Built with http://highcharts.com/
+var ReportChart ReporterFunc = func(r Results) ([]byte, error) {
+	seriesOk := &bytes.Buffer{}
+	seriesError := &bytes.Buffer{}
+	for i, point := 0, ""; i < len(r); i++ {
+		point = "[" + strconv.FormatFloat(
+			r[i].Timestamp.Sub(r[0].Timestamp).Seconds(), 'f', -1, 32) + ","
+
+		point += strconv.FormatFloat(r[i].Latency.Seconds()*1000, 'f', -1, 32) + "],"
+
+		if r[i].Error == "" {
+			seriesOk.WriteString(point)
+		} else {
+			seriesError.WriteString(point)
+		}
+	}
+	// Remove trailing commas
+	if seriesOk.Len() > 0 {
+		seriesOk.Truncate(seriesOk.Len() - 1)
+	}
+	if seriesError.Len() > 0 {
+		seriesError.Truncate(seriesError.Len() - 1)
+	}
+
+	return []byte(fmt.Sprintf(chartHtmlTemplate, seriesOk, seriesError)), nil
+}
+
+const chartHtmlTemplate = `<!doctype>
+			<html>
+			<head>
+				<title>Vegeta Charts</title>
+				<script src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
+				<script src="http://code.highcharts.com/highcharts.js"></script>
+				<script src="http://code.highcharts.com/modules/exporting.js"></script>
+			</head>
+			<body>
+				<div id="container" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+				<script>
+				$(function () {
+					$('#container').highcharts({
+						chart: {
+								type: 'spline'
+							},
+							title: {
+								text: 'Vegeta chart'
+							},
+							subtitle: {
+								text: 'built with highcharts.com'
+							},
+							xAxis: {
+								type: 'float',
+								title: {
+									text: 'Seconds'
+								}
+							},
+							yAxis: {
+								title: {
+									text: 'Latency (ms)'
+								},
+								min: 0
+							},
+							tooltip: {
+								headerFormat: '<b>{series.name}</b><br>',
+								pointFormat: '{point.x:%%e. %%b}: {point.y:.2f} m'
+							},
+							colors: ['green', 'red'],
+							series: [
+								{
+									name: 'OK',
+									data: [
+										%s
+									]
+								},
+								{
+									name: 'ERROR',
+									data: [
+										%s
+									]
+								}
+							]
+						});
+					});
+				</script>
+			</body>
+			</html>`
